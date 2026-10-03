@@ -1,0 +1,8 @@
+{
+    "selected_components": 30,
+    "accuracy_percentage": 93.06,
+    "variance_retained_percentage": 86.41,
+    "original_features": 4096,
+    "reduced_features": 30,
+    "feature_reduction_percentage": 99.267578125
+}

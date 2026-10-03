@@ -1,0 +1,3 @@
+Model,Correct Predictions,Incorrect Predictions,Total Test Images
+Without PCA,67,5,72
+With PCA,58,14,72

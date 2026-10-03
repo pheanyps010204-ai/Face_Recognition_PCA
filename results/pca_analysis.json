@@ -1,0 +1,6 @@
+{
+    "original_features": 4096,
+    "pca_components": 10,
+    "variance_retained_10_components": 0.7036203229337838,
+    "variance_retained_percentage": 70.36203229337839
+}

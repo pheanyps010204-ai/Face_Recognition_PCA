@@ -1,91 +1,213 @@
 import cv2
 import os
+import time
 
-# -----------------------------
-# Person name
-# -----------------------------
-person_name = input("Enter person's name: ")
 
-# -----------------------------
+# ==========================================
+# SETTINGS
+# ==========================================
+
+person_name = "Person1"
+
+number_of_images = 10
+
+dataset_path = os.path.join(
+    "dataset",
+    person_name
+)
+
+
+# ==========================================
 # Create folder
-# -----------------------------
-save_path = os.path.join("dataset", person_name)
+# ==========================================
 
-os.makedirs(save_path, exist_ok=True)
+os.makedirs(
+    dataset_path,
+    exist_ok=True
+)
 
-# -----------------------------
-# Delete previous images
-# -----------------------------
-for file in os.listdir(save_path):
-    if file.endswith(".jpg"):
-        os.remove(os.path.join(save_path, file))
 
-print("Previous images deleted.")
+# ==========================================
+# DELETE OLD IMAGES
+# ==========================================
 
-# -----------------------------
-# Load face detector
-# -----------------------------
+old_files = [
+    file
+    for file in os.listdir(dataset_path)
+    if file.lower().endswith(".jpg")
+]
+
+print(f"Found {len(old_files)} old images.")
+
+for file in old_files:
+
+    file_path = os.path.join(
+        dataset_path,
+        file
+    )
+
+    os.remove(file_path)
+
+
+print("Old Person1 images deleted.")
+print("Starting new collection...")
+print()
+
+
+# ==========================================
+# LOAD FACE DETECTOR
+# ==========================================
+
 face_detector = cv2.CascadeClassifier(
     cv2.data.haarcascades +
     "haarcascade_frontalface_default.xml"
 )
 
-# -----------------------------
-# Check detector
-# -----------------------------
+
 if face_detector.empty():
-    print("Could not load face detector.")
+
+    print("ERROR: Could not load face detector.")
+
     exit()
 
-# -----------------------------
-# Open webcam
-# -----------------------------
+
+print("Face detector loaded successfully.")
+
+
+# ==========================================
+# START CAMERA
+# ==========================================
+
 camera = cv2.VideoCapture(0)
 
+
 if not camera.isOpened():
-    print("Could not access camera.")
+
+    print("ERROR: Could not open camera.")
+
     exit()
+
+
+print("Camera started.")
+print()
+print("Look at the camera.")
+print("Slowly change your face position.")
+print("Press Q if you want to stop early.")
+print()
+
+
+# ==========================================
+# COLLECT IMAGES
+# ==========================================
 
 count = 0
 
-print("Starting camera...")
-print("Look at the camera.")
-print("Press Q to stop.")
+last_capture_time = 0
 
-# -----------------------------
-# Start collecting images
-# -----------------------------
-while True:
+capture_interval = 0.5
+
+
+while count < number_of_images:
+
+    # --------------------------------------
+    # Read camera frame
+    # --------------------------------------
 
     ret, frame = camera.read()
 
+
     if not ret:
-        print("Could not read camera frame.")
+
+        print("ERROR: Could not read camera frame.")
+
         break
 
-    # -----------------------------
+
+    # --------------------------------------
     # Convert to grayscale
-    # -----------------------------
+    # --------------------------------------
+
     gray = cv2.cvtColor(
         frame,
         cv2.COLOR_BGR2GRAY
     )
 
-    # -----------------------------
+
+    # --------------------------------------
     # Detect faces
-    # -----------------------------
+    # --------------------------------------
+
     faces = face_detector.detectMultiScale(
         gray,
         scaleFactor=1.3,
-        minNeighbors=5
+        minNeighbors=5,
+        minSize=(100, 100)
     )
 
-    # -----------------------------
-    # Process detected faces
-    # -----------------------------
+
+    # --------------------------------------
+    # Process detected face
+    # --------------------------------------
+
     for (x, y, w, h) in faces:
 
-        # Draw rectangle
+        current_time = time.time()
+
+
+        # ----------------------------------
+        # Capture every 0.5 seconds
+        # ----------------------------------
+
+        if (
+            current_time - last_capture_time
+            >= capture_interval
+        ):
+
+            # Crop face
+
+            face = gray[
+                y:y+h,
+                x:x+w
+            ]
+
+
+            # Resize to 64 × 64
+
+            face = cv2.resize(
+                face,
+                (64, 64)
+            )
+
+
+            # ----------------------------------
+            # File name
+            # ----------------------------------
+
+            filename = os.path.join(
+                dataset_path,
+                f"{count + 1:03d}.jpg"
+            )
+
+
+            # ----------------------------------
+            # Save image
+            # ----------------------------------
+
+            cv2.imwrite(
+                filename,
+                face
+            )
+
+
+            count += 1
+
+            last_capture_time = current_time
+
+
+        # ----------------------------------
+        # Draw face rectangle
+        # ----------------------------------
+
         cv2.rectangle(
             frame,
             (x, y),
@@ -94,82 +216,64 @@ while True:
             2
         )
 
-        # -----------------------------
-        # Crop face
-        # -----------------------------
-        face = gray[y:y+h, x:x+w]
 
-        # -----------------------------
-        # Resize face to 64 × 64
-        # -----------------------------
-        face = cv2.resize(
-            face,
-            (64, 64)
+        # ----------------------------------
+        # Show progress
+        # ----------------------------------
+
+        cv2.putText(
+            frame,
+            f"Images: {count}/{number_of_images}",
+            (20, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
         )
 
-        # -----------------------------
-        # Save image
-        # -----------------------------
-        filename = os.path.join(
-            save_path,
-            f"{count}.jpg"
-        )
 
-        cv2.imwrite(
-            filename,
-            face
-        )
+        # Only use one face
 
-        count += 1
+        break
 
-        # Stop after 100 images
-        if count >= 100:
-            break
 
-    # -----------------------------
-    # Display image count
-    # -----------------------------
-    cv2.putText(
-        frame,
-        f"Images: {count}/100",
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 255, 0),
-        2
-    )
+    # ======================================
+    # Display webcam
+    # ======================================
 
-    # -----------------------------
-    # Show camera
-    # -----------------------------
     cv2.imshow(
-        "Face Collection",
+        "Collect Person1 Images",
         frame
     )
 
-    # -----------------------------
-    # Stop after 100 images
-    # -----------------------------
-    if count >= 100:
-        break
 
-    # -----------------------------
-    # Press Q to stop
-    # -----------------------------
+    # ======================================
+    # Press Q to quit
+    # ======================================
+
     if cv2.waitKey(1) & 0xFF == ord("q"):
+
         break
 
-# -----------------------------
-# Release camera
-# -----------------------------
+
+# ==========================================
+# RELEASE CAMERA
+# ==========================================
+
 camera.release()
 
-# Close windows
 cv2.destroyAllWindows()
 
-# -----------------------------
-# Final message
-# -----------------------------
+
+# ==========================================
+# FINAL MESSAGE
+# ==========================================
+
 print()
-print(f"Collected {count} images.")
-print(f"Saved in: {save_path}")
+print("==========================================")
+print("Face collection finished.")
+print("==========================================")
+print(f"Person: {person_name}")
+print(f"Images collected: {count}")
+print(f"Saved in: {dataset_path}")
+print("==========================================")
